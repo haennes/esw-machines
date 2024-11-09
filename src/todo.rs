@@ -1,7 +1,8 @@
-use leptos::either::Either;
-use leptos::prelude::*;
+use crate::server_fn::*;
+use futures::future::Either;
+use leptos::*;
+use leptos_actix::*;
 use serde::{Deserialize, Serialize};
-use server_fn::ServerFnError;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
@@ -38,8 +39,7 @@ pub async fn get_todos() -> Result<Vec<Todo>, ServerFnError> {
     let mut conn = db().await?;
 
     let mut todos = Vec::new();
-    let mut rows =
-        sqlx::query_as::<_, Todo>("SELECT * FROM todos").fetch(&mut conn);
+    let mut rows = sqlx::query_as::<_, Todo>("SELECT * FROM todos").fetch(&mut conn);
     while let Some(row) = rows.try_next().await? {
         todos.push(row);
     }
@@ -114,30 +114,28 @@ pub fn Todos() -> impl IntoView {
 
     let existing_todos = move || {
         Suspend::new(async move {
-            todos
-                .await
-                .map(|todos| {
-                    if todos.is_empty() {
-                        Either::Left(view! { <p>"No tasks were found."</p> })
-                    } else {
-                        Either::Right(
-                            todos
-                                .iter()
-                                .map(move |todo| {
-                                    let id = todo.id;
-                                    view! {
-                                        <li>
-                                            {todo.title.clone()} <ActionForm action=delete_todo>
-                                                <input type="hidden" name="id" value=id/>
-                                                <input type="submit" value="X"/>
-                                            </ActionForm>
-                                        </li>
-                                    }
-                                })
-                                .collect::<Vec<_>>(),
-                        )
-                    }
-                })
+            todos.await.map(|todos| {
+                if todos.is_empty() {
+                    Either::Left(view! { <p>"No tasks were found."</p> })
+                } else {
+                    Either::Right(
+                        todos
+                            .iter()
+                            .map(move |todo| {
+                                let id = todo.id;
+                                view! {
+                                    <li>
+                                        {todo.title.clone()} <ActionForm action=delete_todo>
+                                            <input type="hidden" name="id" value=id/>
+                                            <input type="submit" value="X"/>
+                                        </ActionForm>
+                                    </li>
+                                }
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                }
+            })
         })
     };
 

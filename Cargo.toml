@@ -15,7 +15,7 @@ console_log = "1.0"
 console_error_panic_hook = "0.1.7"
 serde = { version = "1.0", features = ["derive"] }
 futures = "0.3.30"
-leptos = { version = "0.4", features = ["serde"] }
+leptos = { version = "0.6.15", features = ["serde"] }
 leptos_actix = { version = "*", optional = true }
 log = "0.4.22"
 simple_logger = "5.0"
@@ -38,6 +38,7 @@ ssr = [
   "leptos_actix",
   "dep:tokio",
 ]
+default = ["ssr"]
 
 [package.metadata.cargo-all-features]
 denylist = ["actix-files", "actix-web", "leptos_actix", "sqlx"]

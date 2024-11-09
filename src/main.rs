@@ -1,3 +1,4 @@
+use leptos::*;
 mod todo;
 
 #[cfg(feature = "ssr")]
@@ -58,7 +59,8 @@ async fn main() -> std::io::Result<()> {
                             </body>
                         </html>
                     }
-            }})
+                }
+            })
             .service(Files::new("/", site_root.as_ref()))
         //.wrap(middleware::Compress::default())
     })
