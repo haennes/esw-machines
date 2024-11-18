@@ -2,28 +2,131 @@ use crate::error_template::{AppError, ErrorTemplate};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
-use serde;
+use leptos_use::{use_interval, UseIntervalReturn};
+use serde::{self, Deserialize, Serialize};
+use std::cmp::{max, min};
+use std::future::Future;
+use std::path::{Path, PathBuf};
 
-use super::users::*;
+type KEY = usize;
 
 #[cfg(feature = "ssr")]
 pub mod ssr {
-    use leptos::server_fn::ServerFnError;
-    use sqlx::postgres::{PgPool, PgPoolOptions};
-    //use sqlx::ConnectOptions;
-    //use sqlx::Pool;
+    use crate::app::{MachineS, MachineState, KEY};
+    use itertools::Itertools;
+    use serde::{Deserialize, Serialize};
+    use std::fs::{File, OpenOptions};
+    use std::io::{Read, Write};
 
-    pub async fn db() -> Result<PgPool, ServerFnError> {
-        Ok(PgPoolOptions::new()
-            .max_connections(5)
-            .connect("postgres://strichliste-rs:secret@localhost/strichliste-rs")
-            .await?)
-        //let opts = PgConnectOptions::new()
-        //    .socket("/var/lib/postgresql")
-        //    .username("strichliste-rs")
-        //    .password("secret")
-        //    .database("strichliste-rs");
-        //Ok(PgPool::connect_with(opts).await?)
+    const PATH: &str = "/home/hannses/tmp/esw";
+
+    #[derive(Serialize, Deserialize)]
+    struct MachineSServer {
+        state: MachineStateServer,
+        name: String,
+    }
+    impl MachineSServer {
+        pub fn new(name: impl ToString) -> Self {
+            Self {
+                state: MachineStateServer::Empty(),
+                name: name.to_string(),
+            }
+        }
+    }
+
+    impl From<&MachineS> for MachineSServer {
+        fn from(value: &MachineS) -> Self {
+            Self {
+                state: value.state.into(),
+                name: value.name.clone(),
+            }
+        }
+    }
+
+    impl Into<MachineS> for &MachineSServer {
+        fn into(self) -> MachineS {
+            MachineS {
+                state: self.state.into(),
+                name: self.name.clone(),
+            }
+        }
+    }
+    #[derive(Serialize, Deserialize, Copy, Clone)]
+    enum MachineStateServer {
+        Full(u64), //time when done
+        Empty(),
+    }
+
+    impl From<MachineState> for MachineStateServer {
+        fn from(value: MachineState) -> Self {
+            match value {
+                MachineState::DoneFull(t) => Self::Full(t),
+                MachineState::Doing(t) => Self::Full(t),
+                MachineState::DoneEmpty() => Self::Empty(),
+            }
+        }
+    }
+
+    impl Into<MachineState> for MachineStateServer {
+        fn into(self) -> MachineState {
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let current = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            match self {
+                MachineStateServer::Full(t) => {
+                    if t > current {
+                        MachineState::Doing(t)
+                    } else {
+                        MachineState::DoneFull(t)
+                    }
+                }
+                MachineStateServer::Empty() => MachineState::DoneEmpty(),
+            }
+        }
+    }
+
+    pub fn read_file() -> Vec<MachineS> {
+        let DEFAULT_MACHINES = vec![
+            MachineSServer::new("Waschmaschine 1"),
+            MachineSServer::new("Waschmaschine 2"),
+            MachineSServer::new("Waschmaschine 3"),
+            MachineSServer::new("Trockner 4"),
+            MachineSServer::new("Trockner 5"),
+        ];
+        let mut file = File::open(PATH).expect("could not open file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("failed to read file");
+        ron::from_str(&contents)
+            .unwrap_or(DEFAULT_MACHINES)
+            .iter()
+            .map_into()
+            .collect()
+    }
+
+    pub fn write_file(contents: &Vec<MachineS>) -> Result<(), ()> {
+        let mut file = File::options()
+            .write(true)
+            .truncate(true)
+            .open(PATH)
+            .unwrap();
+        // .expect("could not open file");
+        let contents = contents
+            .iter()
+            .map(|v| -> MachineSServer { v.into() })
+            .collect_vec();
+        let string = ron::to_string(&contents).map_err(|_| ())?;
+        file.write_all(string.as_bytes())
+            .expect("failed to write to file");
+        Ok(())
+    }
+
+    pub fn set_machine_state(s: MachineState, idx: KEY) -> Result<(), ()> {
+        let mut old = read_file();
+        old[idx].state = s;
+        write_file(&old)
     }
 }
 
@@ -40,7 +143,7 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/strichliste-rs.css"/>
 
         // sets the document title
-        <Title text="Stichliste"/>
+        <Title text="ESW Waschmaschinen"/>
 
         // content for this welcome page
         <Router fallback=|| {
@@ -54,7 +157,6 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes>
                     <Route path="/" view=HomePage/>
-                    <Route path="/:id" view=UserPage/>
                 </Routes>
             </main>
         </Router>
@@ -64,35 +166,209 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
+    // let time = OffsetDateTime::now_utc();
     view! {
+    <div class="centered">
+     <div class="responsive-size">
 
-        <Await
+      <div class="container">
+         <h1 class="heading">ESW Wäscheraum</h1>
+         <p class="last-activity">letzte Aktivität vor 2 Stunden</p>
+      </div>
+      <ul class="machines" role="list">
+      <Await
+        future =|| get_machines()
+        let:data
+      >
+      {
+          data.to_owned().unwrap_or_default().into_iter().enumerate().map(|(idx, m)| view! {
 
-            future=|| get_users()
-            let:data
-        >
-            <div class="users">
-                {
-                    data
-                        .to_owned()
-                        .unwrap_or_default()
-                        .into_iter()
-                    .map(|user| view! {
-                        <UserTile user=create_signal(user).0 />
-                    }).collect_view()
-                }
-            </div>
-        </Await>
+      <Machine name={m.name} idx={idx} state={m.state}/>
+          }).collect_view()
+     }
+      </Await>
+      </ul>
+     </div>
+    </div>
+     }
+}
+#[server(getMachines)]
+pub async fn get_machines() -> Result<Vec<MachineS>, ServerFnError> {
+    Ok(ssr::read_file())
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct MachineS {
+    state: MachineState,
+    name: String,
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub enum MachineState {
+    DoneFull(u64),
+    Doing(u64),
+    DoneEmpty(),
+}
+
+// impl IntoView for MachineState {
+// fn into_view(self) -> View {
+
+#[component]
+fn MachineStateV(state: MachineState) -> impl IntoView {
+    use web_time::{SystemTime, UNIX_EPOCH};
+    let (text, bg, hidden, t) = match state {
+        MachineState::DoneFull(t) => ("Fertig", "bg_orange", false, t),
+        MachineState::Doing(t) => ("Läuft", "bg_red", true, t),
+        MachineState::DoneEmpty() => ("Leer", "bg_green", false, 0),
+    };
+    let hidden_class = if hidden { "" } else { " hidden" };
+    let UseIntervalReturn { counter, .. } = use_interval(1000);
+    let time = move || {
+        let current = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let secs = max(0, t as i128 - current as i128);
+        let _ = counter.get(); //updates every second
+        format!(
+            "{:02}:{:02}",
+            secs / 3600,
+            min(59, ((secs.abs() % 3600) as f64 / 60.0_f64).ceil() as i128) //only show minus on hours
+                                                                            //never show sth like: 0:60 humans are dumb...
+        )
+    };
+    view! {
+        <dl class= "machine_mid_state">
+    <dd class= "machine_mid_state_holder">
+      <span class="machine_mid_state_state {bg}">
+        {text}
+      </span>
+    </dd>
+         <dd class= "machine_mid_state_holder">
+          <div class="machine_mid_state_time{hidden_class}" >
+          {time}
+          </div>
+         </dd>
+        </dl>
     }
 }
 
 #[component]
-fn UserPage() -> impl IntoView {
-    // let param = use_params::<UserParam>();
-    // let user_id =
-    //     move || param.with(|params| params.as_ref().map(|params| params.id).unwrap_or_default());
-    // view! {
-    //     <p>"Hello User with id " {user_id} </p>
-    // }
-    view! {}
+fn Machine(name: String, idx: KEY, state: MachineState) -> impl IntoView {
+    let bg = match state {
+        MachineState::DoneFull(_) => "bg_orange",
+        MachineState::Doing(_) => "bg_red",
+        MachineState::DoneEmpty() => "bg_green",
+    };
+    view! {
+        <li class="machine rounding">
+          <div class="machine_color_band {bg}"> </div>
+          <div class="machine_mid">
+            <h3 class= "machine_mid_name"> {name} </h3>
+            <MachineStateV state={state}/>
+          </div>
+          <div>
+      <div class="machine_bottom_to_empty_div">
+              {
+                  match state {
+                     MachineState::DoneFull(t) => view!{ <MachineToEmpty idx={idx} time={t}/>},
+                     MachineState::Doing(t) => view! {<MachineTime idx={idx} time={t}/>},
+                     MachineState::DoneEmpty() => view!{ <MachineFill idx={idx}/>},
+                  }
+              }
+          </div>
+      </div>
+
+        </li>
+    }
+}
+
+#[server(emptyMachine)]
+pub async fn empty_machine(idx: KEY) -> Result<(), ServerFnError> {
+    println!("emptied: {idx}");
+    ssr::set_machine_state(MachineState::DoneEmpty(), idx)
+        .map_err(|_| ServerFnError::new("oops"))?;
+    leptos_axum::redirect("/");
+    Ok(())
+}
+
+#[component]
+fn MachineToEmpty(idx: KEY, time: u64) -> impl IntoView {
+    let empty_machine = create_server_action::<emptyMachine>();
+    let onclick = "this.form.submit();";
+    view! {
+        <ActionForm action=empty_machine class="machine_bottom_to_empty_form">
+          <button type="submit" class="machine_bottom_to_empty" onclick={onclick}>
+            Maschine geleert
+          </button>
+          <input type="hidden" name="idx" value={idx}/>
+        </ActionForm>
+    }
+}
+
+#[server(fillMachine)]
+pub async fn fill_machine(idx: KEY, time: u16) -> Result<(), ServerFnError> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    println!("filled: {idx} for {time}");
+    let current = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| ServerFnError::new("oops"))?
+        .as_secs();
+    ssr::set_machine_state(MachineState::Doing(current + (time * 60) as u64), idx)
+        .map_err(|_| ServerFnError::new("oops"))
+}
+
+#[component]
+fn MachineFill(idx: KEY) -> impl IntoView {
+    let options = (vec![1, 30, 60, 61, 90, 120, 150, 180, 210])
+        .into_iter()
+        .map(|value| {
+            let hours = value / 60;
+            let minutes = format!("{:02}", value % 60);
+            view! {
+                <option value="{value}">{hours}:{minutes}</option>
+            }
+        })
+        .collect_view();
+    let fill_machine = create_server_action::<fillMachine>();
+    // let onchange = "if(this.value != 0) { this.form.submit(); }";
+    let onchange = "this.form.submit();";
+    view! {
+
+        <ActionForm action=fill_machine class="machine_bottom_to_empty_form">
+          <select
+            class="machine_bottom_to_empty"
+            name="time"
+            onchange={onchange}
+          >
+          <option selected disabled>Dauer wählen</option>
+          {options}
+          </select>
+          <input type="hidden" name="idx" value={idx}/>
+        </ActionForm>
+    }
+}
+
+#[server(cancleMachine)]
+pub async fn cancle_machine(idx: KEY, time: u64) -> Result<(), ServerFnError> {
+    println!("cancle: {idx}");
+    ssr::set_machine_state(MachineState::DoneFull(time), idx)
+        .map_err(|_| ServerFnError::new("oops"))?;
+    leptos_axum::redirect("/");
+    Ok(())
+}
+
+#[component]
+fn MachineTime(idx: KEY, time: u64) -> impl IntoView {
+    let cancle_machine = create_server_action::<cancleMachine>();
+    let onclick = "this.form.submit();";
+    view! {
+        <ActionForm action=cancle_machine class="machine_bottom_to_empty_form">
+          <button type="submit" class="machine_bottom_to_empty" onclick={onclick}>
+            Abbrechen
+          </button>
+          <input type="hidden" name="idx" value={idx}/>
+          <input type="hidden" name="time" value={time}/>
+        </ActionForm>
+    }
 }

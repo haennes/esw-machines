@@ -7,13 +7,13 @@ async fn main() {
     use strichliste_rs::app::*;
     use strichliste_rs::fileserv::file_and_error_handler;
 
-    use strichliste_rs::app::ssr::db;
+    // use strichliste_rs::app::ssr::db;
     use strichliste_rs::app::*;
 
-    let conn = db().await.expect("couln't connect to DB");
-    if let Err(e) = sqlx::migrate!().run(&conn).await {
-        eprintln!("{e:?}");
-    }
+    // let conn = db().await.expect("couln't connect to DB");
+    // if let Err(e) = sqlx::migrate!().run(&conn).await {
+    // eprintln!("{e:?}");
+    // }
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:

@@ -21,14 +21,19 @@ thiserror = "1"
 tracing = { version = "0.1", optional = true }
 http = "1"
 serde = { version = "1.0.210", features = ["derive", "serde_derive"] }
-sqlx = { version = "0.8.2", features = ["runtime-tokio", "postgres"], optional = true }
-futures-util = { version = "0.3.31", optional = true}
-doubloon = { version = "0.2.0", features = ["serde"]}
-rust_decimal = "1.36.0"
+#sqlx = { version = "0.8.2", features = ["runtime-tokio", "postgres"], optional = true }
+#futures-util = { version = "0.3.31", optional = true}
+#doubloon = { version = "0.2.0", features = ["serde"]}
+#rust_decimal = "1.36.0"
+#futures = "0.3"
+time = {version = "0.3.36", features = ["macros", "serde"], optional = true}
+ron = {version = "0.8", optional = true}
+web-time = "1.1.0"
+leptos-use = "0.13.*"
+itertools = "0.13.0"
 
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "debug_users"]
-debug_users = []
+hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 #common = ["debug_users"]
 ssr = [
     "dep:axum",
@@ -40,9 +45,9 @@ ssr = [
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "dep:tracing",
-    "dep:sqlx",
-    "dep:futures-util",
-    "debug_users"
+    "dep:ron",
+    "dep:time",
+    "leptos-use/ssr"
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
