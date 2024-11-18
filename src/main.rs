@@ -2,13 +2,13 @@
 #[cfg(feature = "ssr")]
 async fn main() {
     use axum::Router;
+    use esw_machines::app::*;
+    use esw_machines::fileserv::file_and_error_handler;
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use strichliste_rs::app::*;
-    use strichliste_rs::fileserv::file_and_error_handler;
 
     // use strichliste_rs::app::ssr::db;
-    use strichliste_rs::app::*;
+    use esw_machines::app::*;
 
     // let conn = db().await.expect("couln't connect to DB");
     // if let Err(e) = sqlx::migrate!().run(&conn).await {

@@ -140,7 +140,7 @@ pub fn App() -> impl IntoView {
 
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/strichliste-rs.css"/>
+        <Stylesheet id="leptos" href="/pkg/esw-machines.css"/>
 
         // sets the document title
         <Title text="ESW Waschmaschinen"/>
@@ -350,9 +350,14 @@ fn MachineFill(idx: KEY) -> impl IntoView {
 }
 
 #[server(cancleMachine)]
-pub async fn cancle_machine(idx: KEY, time: u64) -> Result<(), ServerFnError> {
+pub async fn cancle_machine(idx: KEY) -> Result<(), ServerFnError> {
+    use std::time::{SystemTime, UNIX_EPOCH};
     println!("cancle: {idx}");
-    ssr::set_machine_state(MachineState::DoneFull(time), idx)
+    let current = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| ServerFnError::new("oops"))?
+        .as_secs();
+    ssr::set_machine_state(MachineState::DoneFull(current - 1), idx)
         .map_err(|_| ServerFnError::new("oops"))?;
     leptos_axum::redirect("/");
     Ok(())
@@ -368,7 +373,6 @@ fn MachineTime(idx: KEY, time: u64) -> impl IntoView {
             Abbrechen
           </button>
           <input type="hidden" name="idx" value={idx}/>
-          <input type="hidden" name="time" value={time}/>
         </ActionForm>
     }
 }

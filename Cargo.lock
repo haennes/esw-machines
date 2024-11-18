@@ -523,6 +523,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "esw-machines"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "console_error_panic_hook",
+ "http",
+ "itertools 0.13.0",
+ "leptos",
+ "leptos-use",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
+ "ron",
+ "serde",
+ "thiserror",
+ "time",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "wasm-bindgen",
+ "web-time",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1872,31 +1897,6 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
-
-[[package]]
-name = "strichliste-rs"
-version = "0.1.0"
-dependencies = [
- "axum",
- "console_error_panic_hook",
- "http",
- "itertools 0.13.0",
- "leptos",
- "leptos-use",
- "leptos_axum",
- "leptos_meta",
- "leptos_router",
- "ron",
- "serde",
- "thiserror",
- "time",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "wasm-bindgen",
- "web-time",
-]
 
 [[package]]
 name = "strsim"
