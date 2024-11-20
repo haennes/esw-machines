@@ -16,17 +16,9 @@ pub mod ssr {
     use std::fs::File;
     use std::io::{Read, Write};
     use std::sync::LazyLock;
-    // const PATH: &str = "/home/hannses/tmp/esw";
     static PATH: LazyLock<String> = LazyLock::new(|| {
         std::env::var("LEPTOS_DB_FILE").unwrap_or("/home/hannses/tmp/esw".to_string())
     });
-    // #[derive(FromArgs)]
-    // /// esw-machines server
-    // struct Args {
-    //     #[argh(positional, default = "String::from(\"/home/hannses/tmp/esw\")")]
-    //     /// file path to the "database"
-    //     path: String,
-    // }
 
     #[derive(Serialize, Deserialize)]
     struct MachineSServer {
@@ -61,7 +53,8 @@ pub mod ssr {
     }
     #[derive(Serialize, Deserialize, Copy, Clone)]
     enum MachineStateServer {
-        Full(u64), //time when done
+        ///time when done
+        Full(u64),
         Empty(),
     }
 
@@ -127,7 +120,6 @@ pub mod ssr {
                 let f = File::create_new(PATH.clone()).expect("could neither open nor create file");
                 f
             });
-        // .expect("could not open file");
         let contents = contents
             .iter()
             .map(|v| -> MachineSServer { v.into() })
