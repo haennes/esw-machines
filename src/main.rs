@@ -7,14 +7,6 @@ async fn main() {
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
 
-    // use strichliste_rs::app::ssr::db;
-    use esw_machines::app::*;
-
-    // let conn = db().await.expect("couln't connect to DB");
-    // if let Err(e) = sqlx::migrate!().run(&conn).await {
-    // eprintln!("{e:?}");
-    // }
-
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
     // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>

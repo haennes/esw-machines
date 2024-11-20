@@ -5,8 +5,6 @@ use leptos_router::*;
 use leptos_use::{use_interval, UseIntervalReturn};
 use serde::{self, Deserialize, Serialize};
 use std::cmp::{max, min};
-use std::future::Future;
-use std::path::{Path, PathBuf};
 
 type KEY = usize;
 
@@ -15,10 +13,20 @@ pub mod ssr {
     use crate::app::{MachineS, MachineState, KEY};
     use itertools::Itertools;
     use serde::{Deserialize, Serialize};
-    use std::fs::{File, OpenOptions};
+    use std::fs::File;
     use std::io::{Read, Write};
-
-    const PATH: &str = "/home/hannses/tmp/esw";
+    use std::sync::LazyLock;
+    // const PATH: &str = "/home/hannses/tmp/esw";
+    static PATH: LazyLock<String> = LazyLock::new(|| {
+        std::env::var("LEPTOS_DB_FILE").unwrap_or("/home/hannses/tmp/esw".to_string())
+    });
+    // #[derive(FromArgs)]
+    // /// esw-machines server
+    // struct Args {
+    //     #[argh(positional, default = "String::from(\"/home/hannses/tmp/esw\")")]
+    //     /// file path to the "database"
+    //     path: String,
+    // }
 
     #[derive(Serialize, Deserialize)]
     struct MachineSServer {
@@ -88,19 +96,23 @@ pub mod ssr {
     }
 
     pub fn read_file() -> Vec<MachineS> {
-        let DEFAULT_MACHINES = vec![
+        let default_machines = vec![
             MachineSServer::new("Waschmaschine 1"),
             MachineSServer::new("Waschmaschine 2"),
             MachineSServer::new("Waschmaschine 3"),
             MachineSServer::new("Trockner 4"),
             MachineSServer::new("Trockner 5"),
         ];
-        let mut file = File::open(PATH).expect("could not open file");
+        println!("DB-PATH: {}", PATH.clone());
+        let mut file = File::open(PATH.clone()).unwrap_or_else(|_| {
+            let f = File::create_new(PATH.clone()).expect("could neither open nor create file");
+            f
+        });
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .expect("failed to read file");
         ron::from_str(&contents)
-            .unwrap_or(DEFAULT_MACHINES)
+            .unwrap_or(default_machines)
             .iter()
             .map_into()
             .collect()
@@ -110,8 +122,11 @@ pub mod ssr {
         let mut file = File::options()
             .write(true)
             .truncate(true)
-            .open(PATH)
-            .unwrap();
+            .open(PATH.clone())
+            .unwrap_or_else(|_| {
+                let f = File::create_new(PATH.clone()).expect("could neither open nor create file");
+                f
+            });
         // .expect("could not open file");
         let contents = contents
             .iter()
@@ -166,14 +181,12 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    // let time = OffsetDateTime::now_utc();
     view! {
     <div class="centered">
      <div class="responsive-size">
 
       <div class="container">
          <h1 class="heading">ESW Wäscheraum</h1>
-         <p class="last-activity">letzte Aktivität vor 2 Stunden</p>
       </div>
       <ul class="machines" role="list">
       <Await
@@ -216,12 +229,12 @@ pub enum MachineState {
 #[component]
 fn MachineStateV(state: MachineState) -> impl IntoView {
     use web_time::{SystemTime, UNIX_EPOCH};
-    let (text, bg, hidden, t) = match state {
+    let (text, bg, shown, t) = match state {
         MachineState::DoneFull(t) => ("Fertig", "bg_orange", false, t),
         MachineState::Doing(t) => ("Läuft", "bg_red", true, t),
         MachineState::DoneEmpty() => ("Leer", "bg_green", false, 0),
     };
-    let hidden_class = if hidden { "" } else { " hidden" };
+    let hidden_class = if shown { "" } else { " hidden" };
     let UseIntervalReturn { counter, .. } = use_interval(1000);
     let time = move || {
         let current = SystemTime::now()

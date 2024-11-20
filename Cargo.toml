@@ -31,6 +31,7 @@ ron = {version = "0.8", optional = true}
 web-time = "1.1.0"
 leptos-use = "0.13.*"
 itertools = "0.13.0"
+argh = {version = "0.1.12", optional = true}
 
 [features]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
@@ -47,6 +48,7 @@ ssr = [
     "dep:tracing",
     "dep:ron",
     "dep:time",
+    "dep:argh",
     "leptos-use/ssr"
 ]
 
@@ -76,6 +78,9 @@ style-file = "style/main.scss"
 #
 # Optional. Env: LEPTOS_ASSETS_DIR.
 assets-dir = "public"
+
+# Optional. Env: LEPTOS_DB_FILE.
+db-file = "/home/hannses/tmp/esw2"
 
 # The IP and port (ex: 127.0.0.1:3000) where the server serves the content. Use it in your server setup.
 site-addr = "127.0.0.1:3000"
