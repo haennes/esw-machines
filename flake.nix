@@ -6,13 +6,23 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     crane.url = "https://flakehub.com/f/ipetkov/crane/0.17.tar.gz";
+    cargo-leptos-src = {
+      url = "github:leptos-rs/cargo-leptos?tag=v0.2.16";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, rust-overlay, }:
+  outputs =
+    { self, nixpkgs, crane, flake-utils, rust-overlay, cargo-leptos-src }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
+
+        cargo-leptos = (import ./nix/cargo-leptos.nix) {
+          inherit pkgs craneLib;
+          cargo-leptos = cargo-leptos-src;
+        };
 
         toolchain = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
           toolchain.default.override {
@@ -25,14 +35,14 @@
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
         # read leptos options from `Cargo.toml`
-        leptos-options = builtins.elemAt (builtins.fromTOML
-          (builtins.readFile ./Cargo.toml)).workspace.metadata.leptos 0;
+        leptos-options = (builtins.fromTOML
+          (builtins.readFile ./Cargo.toml)).package.metadata.leptos;
 
         common-args = {
           inherit src;
 
           # use the name defined in the `Cargo.toml` leptos options
-          pname = leptos-options.bin-package;
+          pname = leptos-options.output-name;
           version = "0.1.0";
 
           doCheck = false;
@@ -64,7 +74,7 @@
 
           buildPhaseCargoCommand = ''
             cargo build \
-              --package=${leptos-options.lib-package} \
+              --package=${leptos-options.output-name} \
               --lib \
               --target-dir=/build/source/target/front \
               --target=wasm32-unknown-unknown \
@@ -82,7 +92,7 @@
 
           buildPhaseCargoCommand = ''
             cargo build \
-              --package=${leptos-options.bin-package} \
+              --package=${leptos-options.output-name} \
               --no-default-features \
               --release
           '';
@@ -92,7 +102,8 @@
         site-server = craneLib.buildPackage (common-args // {
           # add inputs needed for leptos build
           nativeBuildInputs = common-args.nativeBuildInputs ++ [
-            pkgs.cargo-leptos
+            #pkgs.cargo-leptos
+            cargo-leptos
             # used by cargo-leptos for styling
             pkgs.dart-sass
             pkgs.tailwindcss
@@ -116,7 +127,7 @@
         });
 
         site-server-container = pkgs.dockerTools.buildLayeredImage {
-          name = leptos-options.bin-package;
+          name = leptos-options.output-name;
           tag = "latest";
           contents = [ site-server ];
           config = {
