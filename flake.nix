@@ -1,38 +1,36 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    rust-overlay = {
-      url = "https://flakehub.com/f/oxalica/rust-overlay/0.1.tar.gz";
-      inputs.nixpkgs.follows = "nixpkgs";
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url =
+      "github:NixOS/nixpkgs/99dc8785f6a0adac95f5e2ab05cc2e1bf666d172";
+    #crane.url = "https://flakehub.com/f/ipetkov/crane/0.17.tar.gz";
+    crane = {
+      url = "github:ipetkov/crane";
+      #inputs.nixpkgs.follows = "nixpkgs";
     };
-    crane.url = "https://flakehub.com/f/ipetkov/crane/0.17.tar.gz";
-    cargo-leptos-src = {
-      url = "github:leptos-rs/cargo-leptos?tag=v0.2.16";
-      flake = false;
-    };
+    flake-utils.url = "github:gytis-ivaskevicius/flake-utils-plus";
   };
 
-  outputs =
-    { self, nixpkgs, crane, flake-utils, rust-overlay, cargo-leptos-src }:
+  outputs = { self, nixpkgs, crane, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system overlays; };
+        #overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs { inherit system; };
 
-        cargo-leptos = (import ./nix/cargo-leptos.nix) {
-          inherit pkgs craneLib;
-          cargo-leptos = cargo-leptos-src;
-        };
+        #cargo-leptos = (import ./nix/cargo-leptos.nix) {
+        #  inherit pkgs craneLib;
+        #  cargo-leptos = cargo-leptos-src;
+        #};
 
-        toolchain = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
-          toolchain.default.override {
-            extensions = [ "rust-src" "rust-analyzer" ];
-            targets = [ "wasm32-unknown-unknown" ];
-          });
+        #toolchain = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+        #  toolchain.default.override {
+        #    extensions = [ "rust-src" "rust-analyzer" ];
+        #    targets = [ "wasm32-unknown-unknown" ];
+        #  });
 
         src = ./.;
 
-        craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
+        craneLib = (crane.mkLib pkgs).overrideToolchain pkgs.rustc;
 
         # read leptos options from `Cargo.toml`
         leptos-options = (builtins.fromTOML
@@ -49,10 +47,14 @@
 
           nativeBuildInputs = [
             pkgs.clang
-            pkgs.mold # faster compilation
+            pkgs.cargo
+            pkgs.lld_19
+            #pkgs.cargo-binutils
+            #pkgs.rustc
+            #pkgs.mold # faster compilation
             pkgs.binaryen # provides wasm-opt
           ] ++ pkgs.lib.optionals (system == "x86_64-linux") [
-            pkgs.nasm # wasm compiler only for x86_64-linux
+            #pkgs.nasm # wasm compiler only for x86_64-linux
           ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
             # Additional darwin specific inputs can be set here
             pkgs.libiconv # character encoding lib needed by darwin
@@ -103,7 +105,8 @@
           # add inputs needed for leptos build
           nativeBuildInputs = common-args.nativeBuildInputs ++ [
             #pkgs.cargo-leptos
-            cargo-leptos
+            pkgs.cargo-leptos
+            #pkgs.cargo
             # used by cargo-leptos for styling
             pkgs.dart-sass
             pkgs.tailwindcss
@@ -116,10 +119,11 @@
 
           installPhaseCommand = ''
             mkdir -p $out/bin
-            cp target/release/site-server $out/bin/
-            cp target/release/hash.txt $out/bin/
+            cp target/release/esw-machines $out/bin/
+            #cp target/release/site-server $out/bin/
+            #cp target/release/hash.txt $out/bin/
             cp -r target/site $out/bin/
-            cp -r content $out/bin/
+            #cp -r content $out/bin/
           '';
 
           doCheck = false;
