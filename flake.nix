@@ -12,7 +12,11 @@
   };
 
   outputs = { self, nixpkgs, crane, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    let
+      # read leptos options from `Cargo.toml`
+      leptos-options = (builtins.fromTOML
+        (builtins.readFile ./Cargo.toml)).package.metadata.leptos;
+    in flake-utils.lib.eachDefaultSystem (system:
       let
         #overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system; };
@@ -31,10 +35,6 @@
         src = ./.;
 
         craneLib = (crane.mkLib pkgs).overrideToolchain pkgs.rustc;
-
-        # read leptos options from `Cargo.toml`
-        leptos-options = (builtins.fromTOML
-          (builtins.readFile ./Cargo.toml)).package.metadata.leptos;
 
         common-args = {
           inherit src;
@@ -114,13 +114,14 @@
 
           # enable hash_files again
           buildPhaseCargoCommand = ''
-            RUST_BACKTRACE=1 LEPTOS_HASH_FILES=true cargo leptos build --release -vvv
+            RUST_BACKTRACE=1 cargo leptos build --release -vvv
           '';
+          #RUST_BACKTRACE=1 LEPTOS_HASH_FILES=true cargo leptos build --release -vvv
 
           installPhaseCommand = ''
             mkdir -p $out/bin
             cp target/release/esw-machines $out/bin/
-            #cp target/release/site-server $out/bin/
+            ##cp -r target/site-server $out/bin/
             #cp target/release/hash.txt $out/bin/
             cp -r target/site $out/bin/
             #cp -r content $out/bin/
@@ -207,7 +208,8 @@
 
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = (with pkgs; [
-            toolchain # cargo and such from crane
+            #toolchain # cargo and such from crane
+
             just # command recipes
             dive # docker images
             flyctl # fly.io
@@ -221,5 +223,14 @@
           ]) ++ common-args.buildInputs ++ common-args.nativeBuildInputs
             ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.darwin.Security ];
         };
-      });
+      }) // {
+        nixosModules = rec {
+          esw-machines = inputs:
+            import ./nix/esw-machines.nix (inputs // {
+              esw-package = self.packages.x86_64-linux.default;
+              inherit leptos-options;
+            });
+          default = esw-machines;
+        };
+      };
 }
