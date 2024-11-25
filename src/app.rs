@@ -325,7 +325,7 @@ pub async fn fill_machine(idx: KEY, time: u16) -> Result<(), ServerFnError> {
 
 #[component]
 fn MachineFill(idx: KEY) -> impl IntoView {
-    let options = (vec![1, 30, 60, 61, 90, 120, 150, 180, 210])
+    let options = (vec![30, 60, 90, 120, 150, 180, 210])
         .into_iter()
         .map(|value| {
             let hours = value / 60;
