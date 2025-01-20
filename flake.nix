@@ -8,29 +8,30 @@
       url = "github:ipetkov/crane";
       #inputs.nixpkgs.follows = "nixpkgs";
     };
+    rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:gytis-ivaskevicius/flake-utils-plus";
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils }:
+  outputs = { self, nixpkgs, crane, flake-utils, rust-overlay }:
     let
       # read leptos options from `Cargo.toml`
       leptos-options = (builtins.fromTOML
         (builtins.readFile ./Cargo.toml)).package.metadata.leptos;
     in flake-utils.lib.eachDefaultSystem (system:
       let
-        #overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system; };
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs { inherit system overlays; };
 
         #cargo-leptos = (import ./nix/cargo-leptos.nix) {
         #  inherit pkgs craneLib;
         #  cargo-leptos = cargo-leptos-src;
         #};
 
-        #toolchain = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
-        #  toolchain.default.override {
-        #    extensions = [ "rust-src" "rust-analyzer" ];
-        #    targets = [ "wasm32-unknown-unknown" ];
-        #  });
+        toolchain = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+          toolchain.default.override {
+            extensions = [ "rust-src" "rust-analyzer" ];
+            targets = [ "wasm32-unknown-unknown" ];
+          });
 
         src = ./.;
 
@@ -208,7 +209,7 @@
 
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = (with pkgs; [
-            #toolchain # cargo and such from crane
+            toolchain # cargo and such from crane
 
             just # command recipes
             dive # docker images
