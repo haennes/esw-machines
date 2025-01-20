@@ -16,3 +16,4 @@ playwright/.cache/
 
 #PDF files from typ
 *.pdf
+result
