@@ -18,11 +18,23 @@ body {
 }
 .machines{
 		display: grid;
-    grid-template-columns: repeat(auto-fit,300px );
+    //grid-template-columns: repeat(auto-fit,300px );
     /* grid-template-columns: repeat(auto-fit,30vw ); */
 		grid-gap: 1.5rem;
 		padding-left: 0px;
     justify-content: center;
+}
+
+@media (min-width: 1024px) {
+    .machines {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 640px) {
+    .machines {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .machine{
@@ -40,7 +52,7 @@ body {
 	height: 1rem;
 
 border-top-left-radius: 0.5rem;
-  border-top-right-radius: 0.5rem;	
+  border-top-right-radius: 0.5rem;
 }
 
 .machine_mid{
@@ -56,7 +68,7 @@ border-top-left-radius: 0.5rem;
   margin-top: 1.5rem;
 	font-weight: 500;
 	color: gray;
-	
+
 }
 .machine_mid_state{
 	flex-direction: column;
@@ -80,7 +92,7 @@ border-top-left-radius: 0.5rem;
   padding-bottom: 0.25rem;
 
   padding-left: 0.5rem;
-  padding-right: 0.5rem;	
+  padding-right: 0.5rem;
 }
 
 .machine_mid_state_time{
@@ -156,7 +168,7 @@ border-top-left-radius: 0.5rem;
 .responsive-size{
     width: 100vw; /* Full width of the viewport */
     max-width: 70vw; /* Limit to 80% of the viewport width */
-    /* background-color: lightblue; */ 
+    /* background-color: lightblue; */
 		/* Just for visibility */
     padding: 20px;
     box-sizing: border-box; /* Include padding in width */
