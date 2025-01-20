@@ -232,5 +232,8 @@
             });
           default = esw-machines;
         };
+        hydraJobs = flake-utils.lib.eachDefaultSystem (system:
+          {packages = self.packages.${system}.default;}
+        );
       };
 }
