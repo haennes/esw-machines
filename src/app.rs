@@ -56,6 +56,7 @@ pub mod ssr {
         ///time when done
         Full(u64),
         Empty(),
+        Broken(),
     }
 
     impl From<MachineState> for MachineStateServer {
@@ -64,6 +65,7 @@ pub mod ssr {
                 MachineState::DoneFull(t) => Self::Full(t),
                 MachineState::Doing(t) => Self::Full(t),
                 MachineState::DoneEmpty() => Self::Empty(),
+                MachineState::Broken() => Self::Broken(),
             }
         }
     }
@@ -84,6 +86,7 @@ pub mod ssr {
                     }
                 }
                 MachineStateServer::Empty() => MachineState::DoneEmpty(),
+                MachineStateServer::Broken() => MachineState::Broken(),
             }
         }
     }
@@ -213,6 +216,7 @@ pub enum MachineState {
     DoneFull(u64),
     Doing(u64),
     DoneEmpty(),
+    Broken(),
 }
 
 // impl IntoView for MachineState {
@@ -225,6 +229,7 @@ fn MachineStateV(state: MachineState) -> impl IntoView {
         MachineState::DoneFull(t) => ("Fertig", "bg_orange", false, t),
         MachineState::Doing(t) => ("Läuft", "bg_red", true, t),
         MachineState::DoneEmpty() => ("Leer", "bg_green", false, 0),
+        MachineState::Broken() => ("Defekt", "bg_red", false, 0),
     };
     let hidden_class = if shown { "" } else { " hidden" };
     let UseIntervalReturn { counter, .. } = use_interval(1000);
@@ -264,6 +269,7 @@ fn Machine(name: String, idx: KEY, state: MachineState) -> impl IntoView {
         MachineState::DoneFull(_) => "bg_orange",
         MachineState::Doing(_) => "bg_red",
         MachineState::DoneEmpty() => "bg_green",
+        MachineState::Broken() => "bg_red",
     };
     view! {
         <li class="machine rounding">
@@ -279,6 +285,7 @@ fn Machine(name: String, idx: KEY, state: MachineState) -> impl IntoView {
                      MachineState::DoneFull(t) => view!{ <MachineToEmpty idx={idx} time={t}/>},
                      MachineState::Doing(t) => view! {<MachineTime idx={idx} time={t}/>},
                      MachineState::DoneEmpty() => view!{ <MachineFill idx={idx}/>},
+                     MachineState::Broken() => view!{<MachineBroken idx={idx}/>}
                   }
               }
           </div>
@@ -311,8 +318,36 @@ fn MachineToEmpty(idx: KEY, time: u64) -> impl IntoView {
     }
 }
 
+#[server(MachineBroken)]
+pub async fn repair_machine(idx: KEY) -> Result<(), ServerFnError> {
+    println!("repaired: {idx}");
+    ssr::set_machine_state(MachineState::DoneEmpty(), idx)
+        .map_err(|_| ServerFnError::new("oops"))?;
+    leptos_axum::redirect("/");
+    Ok(())
+}
+
+#[component]
+fn MachineBroken(idx: KEY) -> impl IntoView {
+    let repair_machine = create_server_action::<MachineBroken>();
+    let onclick = "this.form.submit();";
+    view! {
+        <ActionForm action=repair_machine class="machine_bottom_to_empty_form">
+          <button type="submit" class="machine_bottom_to_repair bg_red" onclick={onclick}>
+            Maschine repariert
+          </button>
+          <input type="hidden" name="idx" value={idx}/>
+        </ActionForm>
+    }
+}
 #[server(fillMachine)]
 pub async fn fill_machine(idx: KEY, time: u16) -> Result<(), ServerFnError> {
+    if time == 0 {
+        println!("broke: {idx}");
+        ssr::set_machine_state(MachineState::Broken(), idx)
+            .map_err(|_| ServerFnError::new("oops"))?;
+        return Ok(());
+    }
     use std::time::{SystemTime, UNIX_EPOCH};
     println!("filled: {idx} for {time}");
     let current = SystemTime::now()
@@ -336,7 +371,6 @@ fn MachineFill(idx: KEY) -> impl IntoView {
         })
         .collect_view();
     let fill_machine = create_server_action::<fillMachine>();
-    // let onchange = "if(this.value != 0) { this.form.submit(); }";
     let onchange = "this.form.submit();";
     view! {
 
@@ -348,6 +382,7 @@ fn MachineFill(idx: KEY) -> impl IntoView {
           >
           <option selected disabled>Dauer wählen</option>
           {options}
+          <option value="0">Maschine Defekt</option>
           </select>
           <input type="hidden" name="idx" value={idx}/>
         </ActionForm>

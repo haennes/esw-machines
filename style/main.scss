@@ -136,6 +136,30 @@ border-top-left-radius: 0.5rem;
   justify-content: center;
   align-items: center;
 }
+
+.machine_bottom_to_repair{
+	flex: 1 1 0%;
+	width:100%;
+	display: inline-flex;
+	margin-right: -1px;
+	position: relative;
+	text-transform:none;
+	text-align: center;
+	margin: 0;
+	padding: 0;
+	transform: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-color: transparent;
+  border-width: 1px;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
 .red {
 	color: red;
 }
