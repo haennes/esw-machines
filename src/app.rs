@@ -310,7 +310,7 @@ fn MachineToEmpty(idx: KEY, time: u64) -> impl IntoView {
     let onclick = "this.form.submit();";
     view! {
         <ActionForm action=empty_machine class="machine_bottom_to_empty_form">
-          <button type="submit" class="machine_bottom_to_empty" onclick={onclick}>
+          <button type="submit" class="machine_bottom_to_empty bg_grey" onclick={onclick}>
             Maschine geleert
           </button>
           <input type="hidden" name="idx" value={idx}/>
@@ -376,7 +376,7 @@ fn MachineFill(idx: KEY) -> impl IntoView {
 
         <ActionForm action=fill_machine class="machine_bottom_to_empty_form">
           <select
-            class="machine_bottom_to_empty"
+            class="machine_bottom_to_empty bg_grey"
             name="time"
             onchange={onchange}
           >
@@ -409,7 +409,7 @@ fn MachineTime(idx: KEY, time: u64) -> impl IntoView {
     let onclick = "this.form.submit();";
     view! {
         <ActionForm action=cancle_machine class="machine_bottom_to_empty_form">
-          <button type="submit" class="machine_bottom_to_empty" onclick={onclick}>
+          <button type="submit" class="machine_bottom_to_empty bg_grey" onclick={onclick}>
             Abbrechen
           </button>
           <input type="hidden" name="idx" value={idx}/>
