@@ -6,9 +6,12 @@
     #crane.url = "https://flakehub.com/f/ipetkov/crane/0.17.tar.gz";
     crane = {
       url = "github:ipetkov/crane";
-      #inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay = {
+    url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils.url = "github:gytis-ivaskevicius/flake-utils-plus";
   };
 
