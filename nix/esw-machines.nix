@@ -73,7 +73,7 @@ in {
       environment = {
         LEPTOS_SITE_ADDR = "${cfg.domain}:${toString cfg.port}";
         LEPTOS_OUTPUT_NAME = leptos-options.output-name;
-        LEPTOS_SITE_ROOT = "site";
+        #LEPTOS_SITE_ROOT = "site";
         LEPTOS_SITE_PKG_DIR = "pkg";
         LEPTOS_ENV = "DEV"; # TODO check if this should be enabled
         LEPTOS_DB_FILE = cfg.dataFilePath;

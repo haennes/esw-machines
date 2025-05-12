@@ -2,28 +2,19 @@
   inputs = {
     #nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixpkgs.url =
-      "github:NixOS/nixpkgs/99dc8785f6a0adac95f5e2ab05cc2e1bf666d172";
-    #crane.url = "https://flakehub.com/f/ipetkov/crane/0.17.tar.gz";
-    crane = {
-      url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    rust-overlay = {
-    url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+      "github:NixOS/nixpkgs";
+    crane.url = "https://flakehub.com/f/ipetkov/crane/0.17.tar.gz";
     flake-utils.url = "github:gytis-ivaskevicius/flake-utils-plus";
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, rust-overlay }:
+  outputs = { self, nixpkgs, crane, flake-utils}:
     let
       # read leptos options from `Cargo.toml`
       leptos-options = (builtins.fromTOML
         (builtins.readFile ./Cargo.toml)).package.metadata.leptos;
     in flake-utils.lib.eachDefaultSystem (system:
       let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system overlays; };
+        pkgs = import nixpkgs { inherit system ; };
 
         #cargo-leptos = (import ./nix/cargo-leptos.nix) {
         #  inherit pkgs craneLib;
@@ -204,10 +195,11 @@
         };
 
         packages = {
-          default = site-server;
-          deps-only = site-server-deps;
-          server = site-server;
-          container = site-server-container;
+          default = pkgs.callPackage ./nix/pkg.nix {};
+          #default = site-server;
+          #deps-only = site-server-deps;
+          #server = site-server;
+          #container = site-server-container;
         };
 
         devShells.default = pkgs.mkShell {
