@@ -12,7 +12,6 @@ rustPlatform.buildRustPackage rec{
   makeWrapper
   ];
   cargoHash = "sha256-Y7qLDLz+rk+42p44wqDKg2T0AYXLE3ZjAEVmblhGePI=";
-  useFetchCargoVendor = true;
   buildPhase = ''
   cargo leptos build --release -vvv
   '';
