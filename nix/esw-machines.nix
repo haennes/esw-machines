@@ -1,34 +1,11 @@
-{ lib, config, esw-package, leptos-options, ... }:
+self: system:
+{ lib, config, ... }:
 let
-  inherit (lib) mkEnableOption mkOption getExe;
+  inherit (lib) mkEnableOption mkOption;
   inherit (lib.types) port str package path;
   cfg = config.services.esw-machines;
   dataFileDir = builtins.dirOf cfg.dataFilePath;
   defaultServiceConfig = {
-    #ReadWritePaths = "${cfg.dataFilePath} ${cfg.package}";
-    #DeviceAllow = "";
-    #LockPersonality = true;
-    #NoNewPrivileges = true;
-    #PrivateDevices = true;
-    #PrivateTmp = true;
-    #PrivateUsers = true;
-    #ProcSubset = "pid";
-    #ProtectClock = true;
-    #ProtectControlGroups = true;
-    #ProtectHome = true;
-    #ProtectHostname = true;
-    #ProtectKernelLogs = true;
-    #ProtectKernelModules = true;
-    #ProtectKernelTunables = true;
-    #ProtectProc = "invisible";
-    #ProtectSystem = "strict";
-    #RemoveIPC = true;
-    #RestrictNamespaces = true;
-    #RestrictRealtime = true;
-    #RestrictSUIDSGID = true;
-    #SystemCallArchitectures = "native";
-    #SystemCallFilter = [ "@system-service" "~@resources" "~@privileged" ];
-    #UMask = "0007";
     Type = "oneshot";
     User = cfg.user;
     Group = config.users.users.${cfg.user}.group;
@@ -42,7 +19,7 @@ in {
     domain = mkOption { type = str; };
     package = mkOption {
       type = package;
-      default = esw-package;
+      default = self.packages.${system}.default;
     };
     user = mkOption {
       type = str;
@@ -72,10 +49,7 @@ in {
       #${getExe cfg.package}
       environment = {
         LEPTOS_SITE_ADDR = "${cfg.domain}:${toString cfg.port}";
-        LEPTOS_OUTPUT_NAME = leptos-options.output-name;
-        #LEPTOS_SITE_ROOT = "site";
-        LEPTOS_SITE_PKG_DIR = "pkg";
-        LEPTOS_ENV = "DEV"; # TODO check if this should be enabled
+        LEPTOS_SITE_ROOT="${cfg.package}/bin/site";
         LEPTOS_DB_FILE = cfg.dataFilePath;
 
       };
